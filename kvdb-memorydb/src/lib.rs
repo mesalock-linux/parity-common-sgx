@@ -14,12 +14,22 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity.  If not, see <http://www.gnu.org/licenses/>.
 
-extern crate parking_lot;
+#![cfg_attr(not(target_env = "sgx"), no_std)]
+#![cfg_attr(target_env = "sgx", feature(rustc_private))]
+
+#[cfg(not(target_env = "sgx"))]
+#[macro_use]
+extern crate sgx_tstd as std;
+
+use std::prelude::v1::*;
+
+//extern crate parking_lot;
 extern crate kvdb;
 
 use std::collections::{BTreeMap, HashMap};
 use std::io;
-use parking_lot::RwLock;
+//use parking_lot::RwLock;
+use std::sync::SgxRwLock as RwLock;
 use kvdb::{DBValue, DBTransaction, KeyValueDB, DBOp};
 
 /// A key-value database fulfilling the `KeyValueDB` trait, living in memory.
@@ -46,7 +56,7 @@ pub fn create(num_cols: u32) -> InMemory {
 
 impl KeyValueDB for InMemory {
 	fn get(&self, col: Option<u32>, key: &[u8]) -> io::Result<Option<DBValue>> {
-		let columns = self.columns.read();
+		let columns = self.columns.read().unwrap();
 		match columns.get(&col) {
 			None => Err(io::Error::new(io::ErrorKind::Other, format!("No such column family: {:?}", col))),
 			Some(map) => Ok(map.get(key).cloned()),
@@ -54,7 +64,7 @@ impl KeyValueDB for InMemory {
 	}
 
 	fn get_by_prefix(&self, col: Option<u32>, prefix: &[u8]) -> Option<Box<[u8]>> {
-		let columns = self.columns.read();
+		let columns = self.columns.read().unwrap();
 		match columns.get(&col) {
 			None => None,
 			Some(map) =>
@@ -65,7 +75,7 @@ impl KeyValueDB for InMemory {
 	}
 
 	fn write_buffered(&self, transaction: DBTransaction) {
-		let mut columns = self.columns.write();
+		let mut columns = self.columns.write().unwrap();
 		let ops = transaction.ops;
 		for op in ops {
 			match op {
@@ -88,7 +98,7 @@ impl KeyValueDB for InMemory {
 	}
 
 	fn iter<'a>(&'a self, col: Option<u32>) -> Box<Iterator<Item=(Box<[u8]>, Box<[u8]>)> + 'a> {
-		match self.columns.read().get(&col) {
+		match self.columns.read().unwrap().get(&col) {
 			Some(map) => Box::new( // TODO: worth optimizing at all?
 				map.clone()
 					.into_iter()
@@ -101,7 +111,7 @@ impl KeyValueDB for InMemory {
 	fn iter_from_prefix<'a>(&'a self, col: Option<u32>, prefix: &'a [u8])
 		-> Box<Iterator<Item=(Box<[u8]>, Box<[u8]>)> + 'a>
 	{
-		match self.columns.read().get(&col) {
+		match self.columns.read().unwrap().get(&col) {
 			Some(map) => Box::new(
 				map.clone()
 					.into_iter()

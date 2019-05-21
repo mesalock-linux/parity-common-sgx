@@ -6,6 +6,11 @@ repository = "https://github.com/paritytech/parity-common"
 description = "A key-value in-memory database that implements the  `KeyValueDB` trait"
 license = "GPL-3.0"
 
+[features]
+default = ["mesalock_sgx"]
+mesalock_sgx = ["sgx_tstd"]
+
 [dependencies]
-parking_lot = "0.6"
+#parking_lot = "0.6"
 kvdb = { version = "0.1", path = "../kvdb" }
+sgx_tstd = { rev = "v1.0.9", git = "https://github.com/baidu/rust-sgx-sdk.git", optional = true }
