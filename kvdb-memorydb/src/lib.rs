@@ -97,7 +97,7 @@ impl KeyValueDB for InMemory {
 		Ok(())
 	}
 
-	fn iter<'a>(&'a self, col: Option<u32>) -> Box<Iterator<Item=(Box<[u8]>, Box<[u8]>)> + 'a> {
+	fn iter<'a>(&'a self, col: Option<u32>) -> Box<dyn Iterator<Item=(Box<[u8]>, Box<[u8]>)> + 'a> {
 		match self.columns.read().unwrap().get(&col) {
 			Some(map) => Box::new( // TODO: worth optimizing at all?
 				map.clone()
@@ -109,7 +109,7 @@ impl KeyValueDB for InMemory {
 	}
 
 	fn iter_from_prefix<'a>(&'a self, col: Option<u32>, prefix: &'a [u8])
-		-> Box<Iterator<Item=(Box<[u8]>, Box<[u8]>)> + 'a>
+		-> Box<dyn Iterator<Item=(Box<[u8]>, Box<[u8]>)> + 'a>
 	{
 		match self.columns.read().unwrap().get(&col) {
 			Some(map) => Box::new(
